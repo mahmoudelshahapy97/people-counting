@@ -5,6 +5,7 @@
 # No host ports: run.sh joins the stack's network to reach it (see README).
 services:
   mailpit:
+    container_name: people-counting-mailpit
     image: axllent/mailpit:v1.21
 
   api:

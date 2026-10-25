@@ -17,6 +17,7 @@ name: people-counting
 
 services:
   postgres:
+    container_name: people-counting-postgres
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
@@ -43,6 +44,7 @@ services:
       retries: 20
 
   api:
+    container_name: people-counting-api
     build:
       context: ./backend
     restart: unless-stopped
@@ -92,6 +94,7 @@ services:
               capabilities: [gpu]
 
   web:
+    container_name: people-counting-web
     build:
       context: ./frontend
     restart: unless-stopped
@@ -116,6 +119,7 @@ services:
   # resolved by the api container, so "localhost" there would mean the
   # container itself. From the host it is rtsp://localhost:8557/people.
   mediamtx:
+    container_name: people-counting-mediamtx
     image: bluenviron/mediamtx:latest-ffmpeg
     restart: unless-stopped
     environment:
@@ -154,6 +158,7 @@ services:
   # still maintained and patched. Chainguard only offers :latest for free, so it
   # is pinned by digest; to update, pull :latest and copy the new digest here.
   minio:
+    container_name: people-counting-minio
     image: cgr.dev/chainguard/minio@sha256:2136d593beacf4461187035eca949fe49abd589d5079735025c711ca58fee0c8
     restart: unless-stopped
     command: ["server", "/data", "--console-address", ":9001"]
@@ -175,6 +180,7 @@ services:
 
   # One-shot: creates the bucket, then exits. Re-running it is harmless.
   minio-init:
+    container_name: people-counting-minio-init
     image: cgr.dev/chainguard/minio@sha256:2136d593beacf4461187035eca949fe49abd589d5079735025c711ca58fee0c8
     depends_on:
       minio:

@@ -10,6 +10,7 @@ name: people-counting
 
 services:
   postgres:
+    container_name: people-counting-postgres
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
@@ -29,6 +30,7 @@ services:
       retries: 20
 
   api:
+    container_name: people-counting-api
     build: .
     restart: unless-stopped
     env_file:
@@ -61,6 +63,7 @@ services:
   # Register the camera as rtsp://mediamtx:8554/people -- that URL is
   # resolved by the api container, so "localhost" there would mean itself.
   mediamtx:
+    container_name: people-counting-mediamtx
     image: bluenviron/mediamtx:latest-ffmpeg
     profiles: ["testing"]
     restart: unless-stopped

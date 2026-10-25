@@ -29,6 +29,21 @@ instead:
 E2E_NETWORK=<project>_default BASE_URL=http://web MAILPIT_URL=http://mailpit:8025 ./e2e/run.sh
 ```
 
+Every service has a fixed `container_name` (`people-counting-<service>`), so
+a second copy needs an override that clears those as well as the ports, or
+its containers clash with the real stack's:
+
+```yaml
+services:
+  postgres: { container_name: !reset null, ports: !reset [] }
+  api: { container_name: !reset null, ports: !reset [] }
+  web: { container_name: !reset null, ports: !reset [] }
+  mediamtx: { container_name: !reset null, ports: !reset [] }
+  minio: { container_name: !reset null, ports: !reset [] }
+  minio-init: { container_name: !reset null }
+  mailpit: { container_name: !reset null }
+```
+
 Results land in:
 
 | Path | What |
