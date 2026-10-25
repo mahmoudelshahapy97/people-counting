@@ -36,7 +36,7 @@ Results land in:
 | `playwright-report/` | HTML report — `npx playwright show-report` |
 | `results.json` | machine-readable summary |
 | `test-results/` | screenshots, video and traces for failures |
-| `artifacts/` | the demo tour's screenshots and video (spec 06) |
+| `../artifacts/` | the demo tour's screenshots and video (spec 06), at the repository root |
 
 ## Mail
 

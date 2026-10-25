@@ -16,7 +16,9 @@
 #   E2E_NETWORK=pc-e2e_default BASE_URL=http://web MAILPIT_URL=http://mailpit:8025 ./e2e/run.sh
 #
 # Results land in e2e/playwright-report (HTML), e2e/results.json and
-# e2e/test-results (screenshots, traces, video of any failure).
+# e2e/test-results (screenshots, traces, video of any failure). The demo
+# tour's screenshots and video go to the repository's artifacts/ folder,
+# handed back to the calling user (the container runs as root).
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -54,7 +56,9 @@ docker run --rm \
   -e CI=1 \
   -v "${HERE}:/e2e" \
   -v people-counting-e2e-node-modules:/e2e/node_modules \
+  -v "${HERE}/../artifacts:/e2e/artifacts" \
   -w /e2e \
   --user root \
   "${IMAGE}" \
-  bash -lc "npm install --no-audit --no-fund --silent && npx playwright test $*"
+  bash -lc "npm install --no-audit --no-fund --silent && npx playwright test $*; status=\$?; \
+    chown -R $(id -u):$(id -g) /e2e/artifacts; exit \$status"

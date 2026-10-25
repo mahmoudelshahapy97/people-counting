@@ -6,9 +6,10 @@
 // storageState) so the recording shows the real login screen rather than
 // starting from an already-authenticated session.
 //
-// Every screenshot and the one video land in e2e/artifacts/, which is inside
-// the bind mount run.sh gives the Playwright container -- anything written
-// outside e2e/ inside that container does not survive it exiting.
+// Every screenshot and the one video land in e2e/artifacts/ inside the
+// Playwright container, which run.sh mounts from the repository's top-level
+// artifacts/ folder -- anything written elsewhere does not survive the
+// container exiting.
 import { expect, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";

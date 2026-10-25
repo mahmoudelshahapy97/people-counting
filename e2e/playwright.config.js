@@ -61,7 +61,7 @@ export default defineConfig({
     },
     // A narrated, recorded tour for a human to watch -- not a correctness
     // check. Signed out at the start on purpose, so the video shows the real
-    // login screen; screenshots and the video land in e2e/artifacts/.
+    // login screen; screenshots and the video land in the top-level artifacts/.
     {
       name: "demo",
       use: { ...devices["Desktop Chrome"], video: "on" },

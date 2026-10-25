@@ -23,6 +23,8 @@ browser ──same origin──> web (nginx) ──proxy──> api ──> post
 
 Each directory has its own README with the detail.
 
+Screenshots of every page, and a video of the console in use, are in [`artifacts/`](artifacts).
+
 ---
 
 ## Run the whole thing
