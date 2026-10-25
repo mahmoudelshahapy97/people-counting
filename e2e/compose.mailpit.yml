@@ -1,0 +1,15 @@
+# Test-only overlay: an SMTP sink the e2e suite reads mail back from.
+#
+#   docker compose -f docker-compose.yml -f e2e/compose.mailpit.yml up -d --build
+#
+# No host ports: run.sh joins the stack's network to reach it (see README).
+services:
+  mailpit:
+    image: axllent/mailpit:v1.21
+
+  api:
+    environment:
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_STARTTLS: "false"
+      ALERT_EMAIL_ENABLED: "true"
