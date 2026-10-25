@@ -127,7 +127,8 @@ export default function CameraList() {
                   <TableCell>Worker</TableCell>
                   <TableCell align="right">Now</TableCell>
                   <TableCell>Limits</TableCell>
-                  <TableCell align="right">Actions</TableCell>
+                  {/* Viewers have no actions, so no empty column either. */}
+                  {canOperate && <TableCell align="right">Actions</TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -184,15 +185,15 @@ export default function CameraList() {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
                           {limitsText(camera)}
                           {camera.alert_enabled ? "" : " · alerts off"}
                         </Typography>
                       </TableCell>
-                      <TableCell align="right">
-                        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                          {canOperate &&
-                            (worker?.running ? (
+                      {canOperate && (
+                        <TableCell align="right">
+                          <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                            {worker?.running ? (
                               <Tooltip title="Stop worker">
                                 <span>
                                   <IconButton
@@ -230,38 +231,39 @@ export default function CameraList() {
                                   </IconButton>
                                 </span>
                               </Tooltip>
-                            ))}
-                          {canManage && (
-                            <Tooltip title="Edit">
-                              <span>
-                                <IconButton
-                                  size="small"
-                                  disabled={busy}
-                                  aria-label={`Edit ${camera.name}`}
-                                  onClick={() => navigate(`/cameras/${camera.camera_id}/edit`)}
-                                >
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                              </span>
-                            </Tooltip>
-                          )}
-                          {canManage && (
-                            <Tooltip title="Delete">
-                              <span>
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  disabled={busy}
-                                  aria-label={`Delete ${camera.name}`}
-                                  onClick={() => setPendingDelete(camera)}
-                                >
-                                  <DeleteOutlineIcon fontSize="small" />
-                                </IconButton>
-                              </span>
-                            </Tooltip>
-                          )}
-                        </Stack>
-                      </TableCell>
+                            )}
+                            {canManage && (
+                              <Tooltip title="Edit">
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    disabled={busy}
+                                    aria-label={`Edit ${camera.name}`}
+                                    onClick={() => navigate(`/cameras/${camera.camera_id}/edit`)}
+                                  >
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                            )}
+                            {canManage && (
+                              <Tooltip title="Delete">
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    disabled={busy}
+                                    aria-label={`Delete ${camera.name}`}
+                                    onClick={() => setPendingDelete(camera)}
+                                  >
+                                    <DeleteOutlineIcon fontSize="small" />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                            )}
+                          </Stack>
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
                 })}

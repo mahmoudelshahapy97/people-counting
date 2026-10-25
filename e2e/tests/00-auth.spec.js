@@ -58,6 +58,10 @@ test("a viewer sees no camera-management actions and cannot reach Users", async 
   await page.goto("/cameras");
   await expect(page.getByRole("heading", { name: "Cameras", level: 5 })).toBeVisible();
   await expect(page.getByRole("link", { name: "Add camera" })).toHaveCount(0);
+  // Nothing to act on, so no Actions column at all rather than an empty one.
+  await expect(page.getByRole("columnheader", { name: "Limits" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Actions" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /^(Start|Stop|Edit|Delete) / })).toHaveCount(0);
 
   // Direct navigation to an admin-only route is refused, not silently allowed.
   await page.goto("/users");
