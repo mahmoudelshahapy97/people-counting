@@ -1,5 +1,22 @@
 # Screens
 
+## The shared InsightEye UI (current)
+
+These come from `frontend/packages/insighteye-ui/scripts/capture.mjs` (APP_KEY=people-counting), run against a scratch stack with `database/seed.sql`:
+
+| Folder | Look |
+|---|---|
+| `screenshots/desktop-dark/` | 1440×900, dark (default) |
+| `screenshots/desktop-light/` | 1440×900, light |
+| `screenshots/desktop-ar/` | 1440×900, dark, Arabic, right to left |
+| `screenshots/phone/` | 390×844, dark |
+
+Each folder has the same pages: login, dashboard, cameras, a camera, live wall, alerts, notifications, analytics, count history, workers & config, workspaces, users, audit log.
+
+## Demo tour
+
+The flat `screenshots/NN-*.png` files below come from the demo tour; they predate the shared UI until the tour is run again.
+
 The running console, captured by the Playwright demo tour
 ([`e2e/tests/06-demo-walkthrough.spec.js`](../e2e/tests/06-demo-walkthrough.spec.js)) against the
 full stack with `database/seed.sql` loaded. Main Entrance is the one live camera: the people
