@@ -1,4 +1,6 @@
 # app/api/routes/alert_router.py
+import csv
+import io
 import logging
 from datetime import datetime
 from typing import Any, Dict, Optional
@@ -21,6 +23,7 @@ from app.schemas.alert_schemas import (
     ThresholdType,
 )
 from app.services.alert_service import alert_service
+from app.services.audit_service import csv_safe
 from app.utils.response import create_response
 
 logger = logging.getLogger(__name__)
@@ -60,6 +63,48 @@ async def list_alerts(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not list alerts."
         )
+
+
+EXPORT_LIMIT = 50_000
+_EXPORT_COLUMNS = [
+    "alert_id", "triggered_at", "camera_name", "person_count", "threshold_type", "threshold_value",
+    "status", "acknowledged_at", "resolved_at", "action_taken", "description",
+]
+
+
+@router.get("/export.csv")
+async def export_alerts(
+    camera_id: Optional[UUID] = Query(None),
+    status_filter: Optional[AlertStatus] = Query(None, alias="status"),
+    threshold_type: Optional[ThresholdType] = Query(None),
+    start: Optional[datetime] = Query(None),
+    end: Optional[datetime] = Query(None),
+    current_user: Dict[str, Any] = Depends(require_role("viewer")),
+    workspace_id: UUID = Depends(get_workspace_id),
+) -> Response:
+    """The Alerts list's filters as CSV, newest first, up to 50,000 rows."""
+    page = await alert_service.list_alerts(
+        workspace_id=workspace_id,
+        camera_id=camera_id,
+        status=status_filter.value if status_filter else None,
+        threshold_type=threshold_type.value if threshold_type else None,
+        start=start,
+        end=end,
+        page=1,
+        per_page=EXPORT_LIMIT,
+    )
+    out = io.StringIO()
+    writer = csv.writer(out)
+    writer.writerow(_EXPORT_COLUMNS)
+    for alert in page["alerts"]:
+        writer.writerow(
+            [v.isoformat() if isinstance(v, datetime) else v for v in (alert.get(c) for c in _EXPORT_COLUMNS)]
+        )
+    return Response(
+        content=csv_safe(out.getvalue()),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="alerts.csv"'},
+    )
 
 
 @router.get("/stats")

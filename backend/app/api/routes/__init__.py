@@ -1,6 +1,8 @@
 from fastapi import APIRouter
 
 from app.api.routes import (
+    audit_router,
+    notification_router,
     alert_router,
     analytics_router,
     auth_router,
@@ -23,3 +25,5 @@ router.include_router(count_router.router)
 router.include_router(alert_router.router)
 router.include_router(system_router.router)
 router.include_router(analytics_router.router)
+router.include_router(notification_router.router)
+router.include_router(audit_router.router)

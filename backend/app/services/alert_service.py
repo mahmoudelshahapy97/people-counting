@@ -10,6 +10,7 @@ as they do any other alert.
 """
 
 import asyncio
+import html
 import logging
 from datetime import datetime
 from email.message import EmailMessage
@@ -18,6 +19,7 @@ from uuid import UUID
 
 from app.core.config import config
 from app.core.database import db_manager
+from app.services.inbox_service import inbox_service
 from app.services import media_service
 from app.services.object_store import alert_key
 from app.services.people_counter import GREATER_THAN, Violation
@@ -95,6 +97,9 @@ class AlertService:
             violation.describe,
             row["alert_id"],
         )
+        task = asyncio.create_task(self._to_inbox(camera, violation, row))
+        _mail_tasks.add(task)
+        task.add_done_callback(_mail_tasks.discard)
         if config.alert_email_active:
             # Mail goes out on its own task: a slow SMTP server must not hold
             # up the worker that raised the alert.
@@ -236,6 +241,22 @@ class AlertService:
         return row or {}
 
     # ------------------------------------------------------------------- mail
+    async def _to_inbox(self, camera: Dict[str, Any], violation: Violation, alert: Dict[str, Any]) -> None:
+        """The bell's half of an alert: everyone who can see the workspace."""
+        high = violation.threshold_type == GREATER_THAN
+        name = camera.get("name") or str(camera["camera_id"])
+        await inbox_service.notify_workspace(
+            alert["workspace_id"],
+            kind="alert",
+            severity="high" if high else "medium",
+            title=f"{'High' if high else 'Low'} occupancy on {name}",
+            message=f"{violation.count} people counted ({violation.describe}).",
+            link=f"/alerts/{alert['alert_id']}",
+            camera_id=camera["camera_id"],
+            camera_name=name,
+            ref_id=alert["alert_id"],
+        )
+
     async def recipients(self, workspace_id: UUID) -> List[str]:
         """Active operators and admins of the camera's workspace.
 
@@ -247,7 +268,7 @@ class AlertService:
             SELECT DISTINCT u.email
             FROM app_user u
             LEFT JOIN workspace_member m ON m.user_id = u.user_id AND m.workspace_id = $1
-            WHERE u.is_active AND u.email <> ''
+            WHERE u.is_active AND u.notify_email AND u.email <> ''
               AND (u.role = 'admin' OR (u.role = 'operator' AND m.user_id IS NOT NULL))
             ORDER BY u.email
             """,
@@ -286,11 +307,11 @@ class AlertService:
         message.add_alternative(
             f"<h2 style=\"color:{color};margin:0 0 12px\">{kind} ALERT</h2>"
             "<table cellpadding=\"4\">"
-            f"<tr><td><b>Camera</b></td><td>{name}</td></tr>"
-            f"<tr><td><b>Location</b></td><td>{where}</td></tr>"
+            f"<tr><td><b>Camera</b></td><td>{html.escape(name)}</td></tr>"
+            f"<tr><td><b>Location</b></td><td>{html.escape(where)}</td></tr>"
             f"<tr><td><b>People</b></td><td style=\"color:{color};font-size:18px\"><b>{violation.count}</b></td></tr>"
             f"<tr><td><b>Limit</b></td><td>{limit}</td></tr>"
-            f"<tr><td><b>Time</b></td><td>{when}</td></tr>"
+            f"<tr><td><b>Time</b></td><td>{html.escape(when)}</td></tr>"
             "</table>"
             "<p>The people count has crossed this camera's configured limit. "
             "Review the alert in the console.</p>",
@@ -303,8 +324,16 @@ class AlertService:
             to = await self.recipients(camera["workspace_id"])
             if not to:
                 return
-            await asyncio.to_thread(send_blocking, self._message(camera, violation, triggered_at, to))
-            logger.info("Alert mail for camera %s sent to %s recipient(s).", camera.get("name"), len(to))
+            # One message per person: a shared To: line would hand every
+            # recipient the whole list of addresses.
+            sent = 0
+            for address in to:
+                try:
+                    await asyncio.to_thread(send_blocking, self._message(camera, violation, triggered_at, [address]))
+                    sent += 1
+                except Exception as e:
+                    logger.error("Alert mail for camera %s to one recipient failed: %s", camera.get("name"), e)
+            logger.info("Alert mail for camera %s sent to %s of %s recipient(s).", camera.get("name"), sent, len(to))
         except Exception as e:
             logger.error("Could not mail the alert for camera %s: %s", camera.get("name"), e)
 
