@@ -1,5 +1,6 @@
 import Box from "@mui/material/Box";
 import { useTheme } from "@mui/material/styles";
+import { useTranslation } from "react-i18next";
 
 /**
  * A small hand-rolled SVG line, so pages that only need a trend do not pull
@@ -7,6 +8,7 @@ import { useTheme } from "@mui/material/styles";
  * camera's limits as dashed lines.
  */
 export function Sparkline({ points = [], height = 120, max = null, min = null }) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const width = 600;
   const pad = 6;
@@ -46,7 +48,7 @@ export function Sparkline({ points = [], height = 120, max = null, min = null })
       viewBox={`0 0 ${width} ${height}`}
       preserveAspectRatio="none"
       role="img"
-      aria-label="Count trend"
+      aria-label={t("sparkline.countTrend")}
       sx={{ width: "100%", height, display: "block" }}
     >
       {limit(max, theme.palette.error.main)}

@@ -1,3 +1,4 @@
+import i18n from "i18next";
 /**
  * Mirrors the enums in app/schemas/ — keep the two in step. The CHECK
  * constraints in database/schema.sql are the ultimate authority on which
@@ -29,8 +30,8 @@ export const THRESHOLD_TYPE = {
 };
 
 export const THRESHOLD_LABEL = {
-  greater_than: "Above max",
-  less_than: "Below min",
+  get greater_than() { return i18n.t("constants.aboveMax"); },
+  get less_than() { return i18n.t("constants.belowMin"); },
 };
 
 export const THRESHOLD_COLOR = {

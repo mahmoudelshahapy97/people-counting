@@ -36,11 +36,14 @@ import { EmptyState, ErrorState, Loading } from "../components/DataStates";
 import { WEEKDAYS } from "../utils/constants";
 import { EMPTY_FILTERS, countParams, limitsText } from "../utils/filters";
 import { formatDateTime, formatNumber } from "../utils/format";
+import { useTranslation } from "react-i18next";
+import i18n from "i18next";
 
 const pad = (hour) => `${String(hour).padStart(2, "0")}:00`;
 const formatPct = (value) => (value === null || value === undefined ? "—" : `${Number(value).toFixed(1)}%`);
 
 function ChartCard({ title, subtitle, children, empty }) {
+  const { t } = useTranslation();
   return (
     <Card sx={{ height: "100%" }}>
       <CardContent>
@@ -53,7 +56,7 @@ function ChartCard({ title, subtitle, children, empty }) {
         <Box sx={{ mt: 2 }}>
           {empty ? (
             <Typography variant="body2" color="text.secondary" sx={{ py: 6, textAlign: "center" }}>
-              No samples in this range.
+              {t("analytics.noSamplesInThisRange")}
             </Typography>
           ) : (
             children
@@ -74,7 +77,7 @@ function pivot(rows, groupKey, labelKey, labels) {
       rows.filter((row) => row[groupKey] === group).map((row) => [row[labelKey], row.avg_person_count])
     );
     return {
-      label: `Floor ${group}`,
+      label: i18n.t("analytics.floorGroup", { group }),
       data: labels.map((label) => byLabel.get(label) ?? null),
       backgroundColor: seriesColor(index),
       borderColor: seriesColor(index),
@@ -87,6 +90,7 @@ function pivot(rows, groupKey, labelKey, labels) {
 }
 
 export default function Analytics() {
+  const { t } = useTranslation();
   const theme = useTheme();
   const baseOptions = useBaseOptions();
   const [filters, setFilters] = useState(EMPTY_FILTERS);
@@ -136,7 +140,7 @@ export default function Analytics() {
         labels: points.map((p) => dayjs(p.bucket_start).format(hourly ? "HH:mm" : "MMM D")),
         datasets: [
           {
-            label: "Average",
+            label: t("analytics.average"),
             data: points.map((p) => p.avg_person_count),
             borderColor: theme.palette.primary.main,
             backgroundColor: `${theme.palette.primary.main}33`,
@@ -145,7 +149,7 @@ export default function Analytics() {
             pointRadius: 0,
           },
           {
-            label: "Peak",
+            label: t("analytics.peak"),
             data: points.map((p) => p.max_person_count),
             borderColor: theme.palette.error.main,
             borderDash: [6, 4],
@@ -164,7 +168,7 @@ export default function Analytics() {
         labels: cams.map((row) => row.camera_name),
         datasets: [
           {
-            label: "Average people",
+            label: t("analytics.averagePeople"),
             data: cams.map((row) => row.avg_person_count),
             backgroundColor: theme.palette.info.main,
             borderRadius: 6,
@@ -184,7 +188,7 @@ export default function Analytics() {
         }),
         datasets: [
           {
-            label: "Average at the busiest hour",
+            label: t("analytics.averageAtTheBusiestHour"),
             data: WEEKDAYS.map((_, num) => busiestByDay.get(num)?.avg_person_count ?? null),
             backgroundColor: theme.palette.secondary.main,
             borderRadius: 6,
@@ -197,7 +201,7 @@ export default function Analytics() {
             callbacks: {
               label: (ctx) => {
                 const row = busiestByDay.get(ctx.dataIndex);
-                return row ? `Avg ${row.avg_person_count} at ${pad(row.hour)}` : "No samples";
+                return row ? t("analytics.avgAt", { avg: row.avg_person_count, hour: pad(row.hour) }) : t("analytics.noSamples");
               },
             },
           },
@@ -211,7 +215,7 @@ export default function Analytics() {
         labels: floors.map((row) => `Floor ${row.floor_level}`),
         datasets: [
           {
-            label: "Average people",
+            label: t("analytics.averagePeople"),
             data: floors.map((row) => row.avg_person_count),
             backgroundColor: theme.palette.success.main,
             borderRadius: 6,
@@ -245,13 +249,13 @@ export default function Analytics() {
         labels: rows.map((row) => row.camera_name),
         datasets: [
           {
-            label: "Above max",
+            label: t("analytics.aboveMax"),
             data: rows.map((row) => row.above_max_count),
             backgroundColor: theme.palette.error.main,
             borderRadius: 4,
           },
           {
-            label: "Below min",
+            label: t("analytics.belowMin"),
             data: rows.map((row) => row.below_min_count),
             backgroundColor: theme.palette.warning.main,
             borderRadius: 4,
@@ -268,7 +272,7 @@ export default function Analytics() {
     };
 
     return { occupancy, byCamera, busiest, byFloor, floorWeekday, floorHour, violations };
-  }, [data, baseOptions, theme]);
+  }, [data, baseOptions, theme, t]);
 
   const kpis = data?.summary?.kpis || {};
   const noSamples = data && !kpis.samples;
@@ -276,40 +280,40 @@ export default function Analytics() {
   return (
     <Box>
       <PageHeader
-        title="Analytics"
-        subtitle="Footfall and occupancy over time, by camera and by floor. Hours and weekdays are in your timezone."
+        title={t("analytics.analytics")}
+        subtitle={t("analytics.footfallAndOccupancyOverTime")}
         actions={[
           <Button key="refresh" onClick={refresh} startIcon={<RefreshIcon />}>
-            Refresh
+            {t("analytics.refresh")}
           </Button>,
         ]}
       />
 
       <CountFilterBar value={filters} onChange={setFilters} />
-      <ErrorState error={error} onRetry={refresh} title="Could not load analytics" />
+      <ErrorState error={error} onRetry={refresh} title={t("analytics.couldNotLoadAnalytics")} />
 
       {loading && !data ? (
-        <Loading label="Crunching the numbers…" height={320} />
+        <Loading label={t("analytics.crunchingTheNumbers")} height={320} />
       ) : !data ? null : noSamples ? (
         <Card>
           <EmptyState
-            title="No samples in this range"
-            description="Counts are stored while a camera's worker runs. Widen the dates, clear a filter, or load database/seed.sql for demo data."
+            title={t("analytics.noSamplesInThisRange2")}
+            description={t("analytics.countsAreStoredWhileA")}
           />
         </Card>
       ) : (
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
             <StatCard
-              label="Average people"
+              label={t("analytics.averagePeople")}
               value={formatNumber(kpis.avg_person_count, 1)}
-              hint={`${formatNumber(kpis.samples)} samples from ${kpis.cameras_reporting} camera(s)`}
+              hint={t("analytics.v0SamplesFromCamerasReporting", { v0: formatNumber(kpis.samples), cameras_reporting: kpis.cameras_reporting })}
               icon={<GroupsIcon />}
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
             <StatCard
-              label="Peak"
+              label={t("analytics.peak")}
               value={formatNumber(kpis.max_person_count)}
               hint={kpis.peak ? `${kpis.peak.camera_name}, ${formatDateTime(kpis.peak.captured_at)}` : "—"}
               icon={<TrendingUpIcon />}
@@ -318,18 +322,18 @@ export default function Analytics() {
           </Grid>
           <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
             <StatCard
-              label="Violations"
+              label={t("analytics.violations")}
               value={formatNumber(kpis.violations)}
-              hint={`${formatPct(kpis.violation_rate)} of samples · ${kpis.above_max} above / ${kpis.below_min} below`}
+              hint={t("analytics.v0OfSamplesAboveMax", { v0: formatPct(kpis.violation_rate), above_max: kpis.above_max, below_min: kpis.below_min })}
               icon={<WarningIcon />}
               color="warning"
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
             <StatCard
-              label="Alerts"
+              label={t("analytics.alerts")}
               value={formatNumber(kpis.alerts)}
-              hint={`${kpis.open_alerts} open · ${kpis.false_positive_alerts} false positive`}
+              hint={t("analytics.openAlertsOpenFalsePositive", { open_alerts: kpis.open_alerts, false_positive_alerts: kpis.false_positive_alerts })}
               icon={<NotificationsIcon />}
               color="error"
             />
@@ -337,8 +341,8 @@ export default function Analytics() {
 
           <Grid size={12}>
             <ChartCard
-              title="Occupancy"
-              subtitle={`Average and peak count per ${data.summary.window.bucket}, all selected cameras together`}
+              title={t("analytics.occupancy")}
+              subtitle={t("analytics.averageAndPeakCountPer", { bucket: data.summary.window.bucket })}
             >
               <ChartBox height={300}>
                 <Line data={charts.occupancy.data} options={charts.occupancy.options} />
@@ -347,13 +351,13 @@ export default function Analytics() {
           </Grid>
 
           <Grid size={12}>
-            <ChartCard title="People over time, by camera" subtitle={`Average per ${data.series.interval}`}>
+            <ChartCard title={t("analytics.peopleOverTimeByCamera")} subtitle={t("analytics.averagePerInterval", { interval: data.series.interval })}>
               <TrendChart cameras={data.series.data} interval={data.series.interval} height={300} />
             </ChartCard>
           </Grid>
 
           <Grid size={{ xs: 12, lg: 6 }}>
-            <ChartCard title="Average people per camera" subtitle="Busiest first" empty={!data.byCamera.count}>
+            <ChartCard title={t("analytics.averagePeoplePerCamera")} subtitle={t("analytics.busiestFirst")} empty={!data.byCamera.count}>
               <ChartBox>
                 <Bar data={charts.byCamera.data} options={charts.byCamera.options} />
               </ChartBox>
@@ -361,8 +365,8 @@ export default function Analytics() {
           </Grid>
           <Grid size={{ xs: 12, lg: 6 }}>
             <ChartCard
-              title="Busiest hour by weekday"
-              subtitle="Each day's busiest hour, and its average count"
+              title={t("analytics.busiestHourByWeekday")}
+              subtitle={t("analytics.eachDaySBusiestHour")}
               empty={!data.busiest.count}
             >
               <ChartBox>
@@ -372,27 +376,27 @@ export default function Analytics() {
           </Grid>
 
           <Grid size={12}>
-            <ChartCard title="When it is busy" subtitle="Average count per weekday and hour">
+            <ChartCard title={t("analytics.whenItIsBusy")} subtitle={t("analytics.averageCountPerWeekdayAnd")}>
               <HourHeatmap cells={data.summary.heatmap} />
             </ChartCard>
           </Grid>
 
           <Grid size={{ xs: 12, lg: 4 }}>
-            <ChartCard title="Average people per floor" empty={!data.byFloor.count}>
+            <ChartCard title={t("analytics.averagePeoplePerFloor")} empty={!data.byFloor.count}>
               <ChartBox>
                 <Bar data={charts.byFloor.data} options={charts.byFloor.options} />
               </ChartBox>
             </ChartCard>
           </Grid>
           <Grid size={{ xs: 12, lg: 8 }}>
-            <ChartCard title="Floors by weekday" empty={!data.floorWeekday.count}>
+            <ChartCard title={t("analytics.floorsByWeekday")} empty={!data.floorWeekday.count}>
               <ChartBox>
                 <Bar data={charts.floorWeekday.data} options={charts.floorWeekday.options} />
               </ChartBox>
             </ChartCard>
           </Grid>
           <Grid size={12}>
-            <ChartCard title="Floors by hour of day" empty={!data.floorHour.count}>
+            <ChartCard title={t("analytics.floorsByHourOfDay")} empty={!data.floorHour.count}>
               <ChartBox>
                 <Line data={charts.floorHour.data} options={charts.floorHour.options} />
               </ChartBox>
@@ -401,8 +405,8 @@ export default function Analytics() {
 
           <Grid size={12}>
             <ChartCard
-              title="Threshold violations by camera"
-              subtitle="Stored samples above the camera's maximum or below its minimum"
+              title={t("analytics.thresholdViolationsByCamera")}
+              subtitle={t("analytics.storedSamplesAboveTheCamera")}
             >
               {data.violations.count ? (
                 <>
@@ -413,13 +417,13 @@ export default function Analytics() {
                     <Table size="small">
                       <TableHead>
                         <TableRow>
-                          <TableCell>Camera</TableCell>
-                          <TableCell align="right">Limits</TableCell>
-                          <TableCell align="right">Above max</TableCell>
-                          <TableCell align="right">Below min</TableCell>
-                          <TableCell align="right">Rate</TableCell>
-                          <TableCell align="right">Alerts</TableCell>
-                          <TableCell>Last violation</TableCell>
+                          <TableCell>{t("analytics.camera")}</TableCell>
+                          <TableCell align="right">{t("analytics.limits")}</TableCell>
+                          <TableCell align="right">{t("analytics.aboveMax")}</TableCell>
+                          <TableCell align="right">{t("analytics.belowMin")}</TableCell>
+                          <TableCell align="right">{t("analytics.rate")}</TableCell>
+                          <TableCell align="right">{t("analytics.alerts")}</TableCell>
+                          <TableCell>{t("analytics.lastViolation")}</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -459,7 +463,7 @@ export default function Analytics() {
                 </>
               ) : (
                 <Typography variant="body2" color="text.secondary" sx={{ py: 4, textAlign: "center" }}>
-                  No camera with limits broke them in this range.
+                  {t("analytics.noCameraWithLimitsBroke")}
                 </Typography>
               )}
             </ChartCard>

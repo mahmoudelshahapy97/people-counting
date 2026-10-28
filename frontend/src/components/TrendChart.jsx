@@ -4,6 +4,7 @@ import { Line } from "react-chartjs-2";
 import dayjs from "dayjs";
 
 import { seriesColor, useBaseOptions } from "./charts";
+import { useTranslation } from "react-i18next";
 
 const LABEL_FORMAT = {
   "5 minutes": "HH:mm",
@@ -17,6 +18,7 @@ const LABEL_FORMAT = {
  * instead of raw samples.
  */
 export function TrendChart({ cameras = [], interval = "1 hour", height = 320 }) {
+  const { t } = useTranslation();
   const baseOptions = useBaseOptions();
 
   const chart = useMemo(() => {
@@ -43,11 +45,11 @@ export function TrendChart({ cameras = [], interval = "1 hour", height = 320 }) 
         ...baseOptions,
         scales: {
           ...baseOptions.scales,
-          y: { ...baseOptions.scales.y, title: { display: true, text: "People (average)" } },
+          y: { ...baseOptions.scales.y, title: { display: true, text: t("trendChart.peopleAverage") } },
         },
       },
     };
-  }, [cameras, interval, baseOptions]);
+  }, [cameras, interval, baseOptions, t]);
 
   return (
     <Box sx={{ height, mt: 2 }}>

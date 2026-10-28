@@ -8,6 +8,7 @@ import TextField from "@mui/material/TextField";
 import { cameras as cameraApi, counts } from "../api/endpoints";
 import { useAsync } from "../hooks/useAsync";
 import { EMPTY_FILTERS, RANGE_PRESETS, presetDates } from "../utils/filters";
+import { useTranslation } from "react-i18next";
 
 const LOCATION_KEYS = [
   ["buildings", "Buildings"],
@@ -22,6 +23,7 @@ const LOCATION_KEYS = [
  * every change is applied at once.
  */
 export function CountFilterBar({ value, onChange }) {
+  const { t } = useTranslation();
   const cameraList = useAsync(({ signal }) => cameraApi.list(undefined, { signal }), []);
   const options = useAsync(({ signal }) => counts.locations({ signal }), []);
   const locations = options.data?.data || {};
@@ -37,7 +39,7 @@ export function CountFilterBar({ value, onChange }) {
     <Card sx={{ p: 2, mb: 2 }}>
       <Grid container spacing={2} alignItems="center">
         <Grid size={{ xs: 12, md: "auto" }}>
-          <ButtonGroup size="small" aria-label="Date range">
+          <ButtonGroup size="small" aria-label={t("countFilterBar.dateRange")}>
             {RANGE_PRESETS.map(([label, days]) => (
               <Button
                 key={label}
@@ -51,7 +53,7 @@ export function CountFilterBar({ value, onChange }) {
         </Grid>
         <Grid size={{ xs: 6, md: "auto" }}>
           <TextField
-            label="From"
+            label={t("countFilterBar.from")}
             type="date"
             size="small"
             value={value.start_date || ""}
@@ -61,7 +63,7 @@ export function CountFilterBar({ value, onChange }) {
         </Grid>
         <Grid size={{ xs: 6, md: "auto" }}>
           <TextField
-            label="To"
+            label={t("countFilterBar.to")}
             type="date"
             size="small"
             value={value.end_date || ""}
@@ -79,7 +81,7 @@ export function CountFilterBar({ value, onChange }) {
             onChange={(_, picked) => set({ camera_id: picked.map((camera) => camera.camera_id) })}
             isOptionEqualToValue={(a, b) => a.camera_id === b.camera_id}
             renderInput={(params) => (
-              <TextField {...params} label="Cameras" placeholder={value.camera_id.length ? "" : "All cameras"} />
+              <TextField {...params} label={t("countFilterBar.cameras")} placeholder={value.camera_id.length ? "" : t("countFilterBar.allCameras")} />
             )}
           />
         </Grid>
@@ -98,7 +100,7 @@ export function CountFilterBar({ value, onChange }) {
           ) : null
         )}
         <Grid size={{ xs: 12, md: "auto" }}>
-          <Button onClick={() => onChange(EMPTY_FILTERS)}>Reset</Button>
+          <Button onClick={() => onChange(EMPTY_FILTERS)}>{t("countFilterBar.reset")}</Button>
         </Grid>
       </Grid>
     </Card>

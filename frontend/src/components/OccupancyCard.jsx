@@ -12,12 +12,14 @@ import Typography from "@mui/material/Typography";
 import { ThresholdChip } from "./StatusChips";
 import { fromNow } from "../utils/format";
 import { locationText, limitsText } from "../utils/filters";
+import { useTranslation } from "react-i18next";
 
 /**
  * One camera's head count against its limits, as the dashboard shows it.
  * `row` is an entry of GET /counts/live.
  */
 export function OccupancyCard({ row }) {
+  const { t } = useTranslation();
   const max = row.count_threshold_greater;
   const count = row.person_count;
   const known = count !== null && count !== undefined;
@@ -41,14 +43,14 @@ export function OccupancyCard({ row }) {
                 {row.camera_name}
               </Typography>
               <Typography variant="caption" color="text.secondary" noWrap component="div">
-                {locationText(row) || "No location set"}
+                {locationText(row) || t("occupancyCard.noLocationSet")}
               </Typography>
             </Box>
             {row.live ? (
-              <Chip size="small" color="success" variant="outlined" label="Live" />
+              <Chip size="small" color="success" variant="outlined" label={t("occupancyCard.live")} />
             ) : (
-              <Tooltip title={row.at ? `Last stored sample, ${fromNow(row.at)}` : "No recent sample"}>
-                <Chip size="small" variant="outlined" label={row.enabled ? row.state : "Stopped"} />
+              <Tooltip title={row.at ? t("occupancyCard.lastStoredSampleV0", { v0: fromNow(row.at) }) : t("occupancyCard.noRecentSample")}>
+                <Chip size="small" variant="outlined" label={row.enabled ? row.state : t("occupancyCard.stopped")} />
               </Tooltip>
             )}
           </Stack>
@@ -58,7 +60,7 @@ export function OccupancyCard({ row }) {
               {known ? count : "—"}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {count === 1 ? "person" : "people"}
+              {count === 1 ? t("occupancyCard.person") : t("occupancyCard.people")}
             </Typography>
           </Stack>
 

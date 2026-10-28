@@ -33,6 +33,8 @@ import { useAsync } from "../hooks/useAsync";
 import { ALERT_STATUS, THRESHOLD_TYPE } from "../utils/constants";
 import { locationText } from "../utils/filters";
 import { formatDateTime, fromNow, shortId, titleCase } from "../utils/format";
+import { useTranslation } from "react-i18next";
+import i18n from "i18next";
 
 function DetailRow({ label, children }) {
   return (
@@ -49,28 +51,28 @@ function DetailRow({ label, children }) {
 const TRIAGE = [
   {
     status: ALERT_STATUS.ACKNOWLEDGED,
-    label: "Acknowledge",
+    get label() { return i18n.t("alertDetail.acknowledge"); },
     icon: <CheckCircleOutlineIcon />,
     color: "warning",
   },
-  { status: ALERT_STATUS.RESOLVED, label: "Resolve", icon: <DoneAllIcon />, color: "success" },
+  { status: ALERT_STATUS.RESOLVED, get label() { return i18n.t("alertDetail.resolve"); }, icon: <DoneAllIcon />, color: "success" },
   {
     status: ALERT_STATUS.FALSE_POSITIVE,
-    label: "False positive",
+    get label() { return i18n.t("alertDetail.falsePositive"); },
     icon: <ThumbDownOffAltIcon />,
     color: "inherit",
   },
 ];
 
 const TRIAGE_HINT = {
-  [ALERT_STATUS.ACKNOWLEDGED]: "Someone is on it. The alert stays in the open work.",
-  [ALERT_STATUS.RESOLVED]: "Handled: the area was cleared, re-staffed or opened up.",
-  [ALERT_STATUS.FALSE_POSITIVE]:
-    "The count was wrong: reflections, posters or a bad angle were counted as people.",
+  get [ALERT_STATUS.ACKNOWLEDGED]() { return i18n.t("alertDetail.someoneIsOnItThe"); },
+  get [ALERT_STATUS.RESOLVED]() { return i18n.t("alertDetail.handledTheAreaWasCleared"); },
+  get [ALERT_STATUS.FALSE_POSITIVE]() { return i18n.t("alertDetail.theCountWasWrongReflections"); },
 };
 
 /** Confirms a triage step and records how the alert was handled. */
 function TriageDialog({ open, status, label, initial, busy, onConfirm, onClose }) {
+  const { t } = useTranslation();
   const [actionTaken, setActionTaken] = useState("");
   const [description, setDescription] = useState("");
 
@@ -92,8 +94,8 @@ function TriageDialog({ open, status, label, initial, busy, onConfirm, onClose }
         <DialogContentText sx={{ mb: 2 }}>{TRIAGE_HINT[status]}</DialogContentText>
         <Stack spacing={2}>
           <TextField
-            label="Action taken"
-            placeholder="e.g. Opened the overflow area, sent two stewards"
+            label={t("alertDetail.actionTaken")}
+            placeholder={t("alertDetail.eGOpenedTheOverflow")}
             value={actionTaken}
             onChange={(event) => setActionTaken(event.target.value)}
             inputProps={{ maxLength: 200 }}
@@ -101,7 +103,7 @@ function TriageDialog({ open, status, label, initial, busy, onConfirm, onClose }
             autoFocus
           />
           <TextField
-            label="Notes"
+            label={t("alertDetail.notes")}
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             inputProps={{ maxLength: 2000 }}
@@ -113,14 +115,14 @@ function TriageDialog({ open, status, label, initial, busy, onConfirm, onClose }
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose} disabled={busy} color="inherit">
-          Cancel
+          {t("alertDetail.cancel")}
         </Button>
         <Button
           variant="contained"
           disabled={busy}
           onClick={() => onConfirm({ action_taken: actionTaken.trim(), description: description.trim() })}
         >
-          {busy ? "Working…" : label}
+          {busy ? t("alertDetail.working") : label}
         </Button>
       </DialogActions>
     </Dialog>
@@ -128,6 +130,7 @@ function TriageDialog({ open, status, label, initial, busy, onConfirm, onClose }
 }
 
 export default function AlertDetail() {
+  const { t } = useTranslation();
   const { alertId } = useParams();
   const toast = useToast();
   const { hasRole } = useAuth();
@@ -148,7 +151,7 @@ export default function AlertDetail() {
       // Empty fields are left out so the notes already stored are kept.
       const filled = Object.fromEntries(Object.entries(notes || {}).filter(([, v]) => v));
       await alertApi.setStatus(alertId, status, filled);
-      toast.success(`Alert marked ${titleCase(status).toLowerCase()}.`);
+      toast.success(t("alertDetail.alertMarkedV0", { v0: titleCase(status).toLowerCase() }));
       setPending(null);
       refresh();
     } catch (err) {
@@ -158,7 +161,7 @@ export default function AlertDetail() {
     }
   };
 
-  if (loading && !data) return <Loading label="Loading alert…" />;
+  if (loading && !data) return <Loading label={t("alertDetail.loadingAlert")} />;
   if (error) return <ErrorState error={error} onRetry={refresh} />;
   if (!data) return null;
 
@@ -168,12 +171,12 @@ export default function AlertDetail() {
   return (
     <Box>
       <Button component={RouterLink} to="/alerts" startIcon={<ArrowBackIcon />} sx={{ mb: 2 }}>
-        All alerts
+        {t("alertDetail.allAlerts")}
       </Button>
 
       <PageHeader
-        title={`${over ? "High" : "Low"} occupancy: ${people}`}
-        subtitle={`${data.camera_name || "Unknown camera"} · ${fromNow(data.triggered_at)}`}
+        title={t("alertDetail.v0OccupancyPeople", { v0: over ? t("alertDetail.high") : t("alertDetail.low"), people })}
+        subtitle={`${data.camera_name || t("alertDetail.unknownCamera")} · ${fromNow(data.triggered_at)}`}
         actions={
           canTriage &&
           TRIAGE.map(({ status, label, icon, color }) => (
@@ -206,19 +209,19 @@ export default function AlertDetail() {
           <Card>
             <Box sx={{ px: 2.5, py: 1.5 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Snapshot
+                {t("alertDetail.snapshot")}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                The annotated frame of the sample that raised the alert: every counted person boxed.
+                {t("alertDetail.theAnnotatedFrameOfThe")}
               </Typography>
             </Box>
             <Divider />
             <ItemImage
               src={alertApi.frameUrl(alertId)}
-              alt={`Annotated frame: ${people}`}
+              alt={t("alertDetail.annotatedFramePeople", { people })}
               height={420}
               fit="contain"
-              fallbackLabel="No snapshot stored for this alert"
+              fallbackLabel={t("alertDetail.noSnapshotStoredForThis")}
             />
           </Card>
         </Grid>
@@ -227,21 +230,21 @@ export default function AlertDetail() {
           <Card>
             <CardContent>
               <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-                Count
+                {t("alertDetail.count")}
               </Typography>
               <Divider />
-              <DetailRow label="Status">
+              <DetailRow label={t("alertDetail.status")}>
                 <AlertStatusChip status={data.status} />
               </DetailRow>
-              <DetailRow label="People counted">
+              <DetailRow label={t("alertDetail.peopleCounted")}>
                 <Typography variant="h5" color={over ? "error.main" : "warning.main"} sx={{ fontWeight: 800 }}>
                   {data.person_count}
                 </Typography>
               </DetailRow>
-              <DetailRow label="Limit broken">
+              <DetailRow label={t("alertDetail.limitBroken")}>
                 <ThresholdChip type={data.threshold_type} value={data.threshold_value} />
               </DetailRow>
-              <DetailRow label="Camera">
+              <DetailRow label={t("alertDetail.camera")}>
                 {data.camera_id ? (
                   <Link component={RouterLink} to={`/cameras/${data.camera_id}`} variant="body2">
                     {data.camera_name}
@@ -250,17 +253,17 @@ export default function AlertDetail() {
                   <Typography variant="body2">—</Typography>
                 )}
               </DetailRow>
-              <DetailRow label="Location">
+              <DetailRow label={t("alertDetail.location")}>
                 <Typography variant="body2" color="text.secondary">
                   {locationText(data) || "—"}
                 </Typography>
               </DetailRow>
-              <DetailRow label="Triggered">
+              <DetailRow label={t("alertDetail.triggered")}>
                 <Typography variant="body2">{formatDateTime(data.triggered_at)}</Typography>
               </DetailRow>
-              <DetailRow label="Identity">
+              <DetailRow label={t("alertDetail.identity")}>
                 <Typography variant="caption" color="text.disabled">
-                  alert {shortId(data.alert_id)}
+                  {t("alertDetail.alertV0", { v0: shortId(data.alert_id) })}
                 </Typography>
               </DetailRow>
             </CardContent>
@@ -270,27 +273,27 @@ export default function AlertDetail() {
             <Card sx={{ mt: 2 }}>
               <CardContent>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-                  Handling
+                  {t("alertDetail.handling")}
                 </Typography>
                 <Divider />
-                <DetailRow label="Acknowledged">
+                <DetailRow label={t("alertDetail.acknowledged")}>
                   <Typography variant="body2" color="text.secondary">
                     {formatDateTime(data.acknowledged_at)}
                   </Typography>
                 </DetailRow>
-                <DetailRow label="Closed">
+                <DetailRow label={t("alertDetail.closed")}>
                   <Typography variant="body2" color="text.secondary">
                     {data.resolved_at
                       ? `${formatDateTime(data.resolved_at)}${
                           data.resolved_by_username ? ` by ${data.resolved_by_username}` : ""
                         }`
-                      : "Still open"}
+                      : t("alertDetail.stillOpen")}
                   </Typography>
                 </DetailRow>
-                <DetailRow label="Action taken">
+                <DetailRow label={t("alertDetail.actionTaken")}>
                   <Typography variant="body2">{data.action_taken || "—"}</Typography>
                 </DetailRow>
-                <DetailRow label="Notes">
+                <DetailRow label={t("alertDetail.notes")}>
                   <Typography variant="body2" sx={{ whiteSpace: "pre-wrap" }}>
                     {data.description || "—"}
                   </Typography>

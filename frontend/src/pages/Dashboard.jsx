@@ -28,8 +28,10 @@ import { usePolling } from "../hooks/usePolling";
 import { POLL_INTERVAL_MS } from "../utils/constants";
 import { countParams, presetDates } from "../utils/filters";
 import { formatNumber, formatTime, fromNow } from "../utils/format";
+import { useTranslation } from "react-i18next";
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   // The live counts move every few seconds; that is the point of the page.
   const live = usePolling(({ signal }) => counts.live({ signal }), {
     intervalMs: POLL_INTERVAL_MS,
@@ -60,44 +62,44 @@ export default function Dashboard() {
   return (
     <Box>
       <PageHeader
-        title="Dashboard"
-        subtitle="How many people each camera sees right now, and which areas are outside their limits."
+        title={t("dashboard.dashboard")}
+        subtitle={t("dashboard.howManyPeopleEachCamera")}
         actions={[
           <Button key="refresh" onClick={refreshAll} startIcon={<RefreshIcon />}>
-            Refresh
+            {t("dashboard.refresh")}
           </Button>,
         ]}
       />
 
-      <ErrorState error={live.error} onRetry={live.refresh} title="Could not load the live counts" />
+      <ErrorState error={live.error} onRetry={live.refresh} title={t("dashboard.couldNotLoadTheLive")} />
 
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatCard
-            label="People now"
+            label={t("dashboard.peopleNow")}
             value={formatNumber(liveData?.occupancy ?? 0)}
-            hint={`Across ${liveData?.cameras_live ?? 0} live camera(s)`}
+            hint={t("dashboard.acrossV0LiveCameraS", { v0: liveData?.cameras_live ?? 0 })}
             icon={<GroupsIcon />}
             color="primary"
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatCard
-            label="Out of limits"
+            label={t("dashboard.outOfLimits")}
             value={formatNumber(liveData?.cameras_in_violation ?? 0)}
-            hint="Cameras above their max or below their min"
+            hint={t("dashboard.camerasAboveTheirMaxOr")}
             icon={<WarningIcon />}
             color={liveData?.cameras_in_violation ? "error" : "success"}
           />
         </Grid>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatCard
-            label="Today's peak"
+            label={t("dashboard.todaySPeak")}
             value={formatNumber(kpis.max_person_count ?? 0)}
             hint={
               kpis.peak
-                ? `${kpis.peak.camera_name} at ${formatTime(kpis.peak.captured_at)}`
-                : "No samples today yet"
+                ? t("dashboard.cameraNameAtV1", { camera_name: kpis.peak.camera_name, v1: formatTime(kpis.peak.captured_at) })
+                : t("dashboard.noSamplesTodayYet")
             }
             icon={<TrendingUpIcon />}
             color="info"
@@ -105,12 +107,12 @@ export default function Dashboard() {
         </Grid>
         <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
           <StatCard
-            label="Open alerts"
+            label={t("dashboard.openAlerts")}
             value={formatNumber(alertStats.open ?? 0)}
             hint={
               alertStats.last_alert_at
-                ? `${formatNumber(alertStats.last_24h ?? 0)} in 24h · latest ${fromNow(alertStats.last_alert_at)}`
-                : "Nothing yet"
+                ? t("dashboard.v0In24hLatestV1", { v0: formatNumber(alertStats.last_24h ?? 0), v1: fromNow(alertStats.last_alert_at) })
+                : t("dashboard.nothingYet")
             }
             icon={<NotificationsIcon />}
             color="warning"
@@ -120,17 +122,17 @@ export default function Dashboard() {
         <Grid size={12}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mt: 1 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-              Live occupancy
+              {t("dashboard.liveOccupancy")}
             </Typography>
             <Link component={RouterLink} to="/cameras" variant="body2">
-              Manage cameras
+              {t("dashboard.manageCameras")}
             </Link>
           </Stack>
         </Grid>
 
         {live.loading && !live.data ? (
           <Grid size={12}>
-            <Loading label="Loading cameras…" height={140} />
+            <Loading label={t("dashboard.loadingCameras")} height={140} />
           </Grid>
         ) : rows.length ? (
           rows.map((row) => (
@@ -142,12 +144,12 @@ export default function Dashboard() {
           <Grid size={12}>
             <Card>
               <EmptyState
-                title="No cameras"
-                description="Register an RTSP source and give it occupancy limits to start counting."
+                title={t("dashboard.noCameras")}
+                description={t("dashboard.registerAnRtspSourceAnd")}
                 icon={<VideocamIcon fontSize="inherit" />}
                 action={
                   <Button component={RouterLink} to="/cameras/new" variant="contained" size="small">
-                    Add a camera
+                    {t("dashboard.addACamera")}
                   </Button>
                 }
               />
@@ -164,10 +166,10 @@ export default function Dashboard() {
               sx={{ px: 2.5, py: 2 }}
             >
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Recent alerts
+                {t("dashboard.recentAlerts")}
               </Typography>
               <Link component={RouterLink} to="/alerts" variant="body2">
-                View all
+                {t("dashboard.viewAll")}
               </Link>
             </Stack>
             <Divider />
@@ -177,7 +179,7 @@ export default function Dashboard() {
                 <ErrorState error={recent.error} onRetry={recent.refresh} />
               </Box>
             ) : recent.loading && !recent.data ? (
-              <Loading label="Loading alerts…" />
+              <Loading label={t("dashboard.loadingAlerts")} />
             ) : recent.data?.alerts?.length ? (
               <List disablePadding>
                 {recent.data.alerts.map((alert) => (
@@ -191,21 +193,21 @@ export default function Dashboard() {
                       primary={
                         <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {alert.person_count} {alert.person_count === 1 ? "person" : "people"}
+                            {alert.person_count} {alert.person_count === 1 ? t("dashboard.person") : t("dashboard.people")}
                           </Typography>
                           <ThresholdChip type={alert.threshold_type} value={alert.threshold_value} />
                           <AlertStatusChip status={alert.status} />
                         </Stack>
                       }
-                      secondary={`${alert.camera_name || "Unknown camera"} · ${fromNow(alert.triggered_at)}`}
+                      secondary={`${alert.camera_name || t("dashboard.unknownCamera")} · ${fromNow(alert.triggered_at)}`}
                     />
                   </ListItemButton>
                 ))}
               </List>
             ) : (
               <EmptyState
-                title="No alerts yet"
-                description="An alert is raised when a camera's count goes above its maximum or below its minimum - at most one per camera per cooldown."
+                title={t("dashboard.noAlertsYet")}
+                description={t("dashboard.anAlertIsRaisedWhen")}
               />
             )}
           </Card>

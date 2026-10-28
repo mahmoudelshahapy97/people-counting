@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import i18n from "i18next";
 
 /** The viewer's IANA timezone: hours and weekdays are cut in it server-side. */
 export const VIEWER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
@@ -61,8 +62,8 @@ export function locationText(row) {
 export function limitsText(row) {
   const min = row.count_threshold_less;
   const max = row.count_threshold_greater;
-  if (min != null && max != null) return `Limits ${min} – ${max}`;
-  if (max != null) return `Max ${max}`;
-  if (min != null) return `Min ${min}`;
-  return "No limits";
+  if (min != null && max != null) return i18n.t("filters.limits", { min, max });
+  if (max != null) return i18n.t("filters.max", { max });
+  if (min != null) return i18n.t("filters.min", { min });
+  return i18n.t("filters.noLimits");
 }

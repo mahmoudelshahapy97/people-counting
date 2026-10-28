@@ -23,6 +23,7 @@ import PageHeader from "../components/PageHeader";
 import { EmptyState, ErrorState, Loading } from "../components/DataStates";
 import { AlertStatusChip, ThresholdChip } from "../components/StatusChips";
 import { alerts as alertApi, cameras as cameraApi } from "../api/endpoints";
+import { ExportButton } from "@insighteye/ui";
 import { useAsync } from "../hooks/useAsync";
 import {
   ALERT_STATUSES,
@@ -31,6 +32,7 @@ import {
   THRESHOLD_LABEL,
 } from "../utils/constants";
 import { formatDateTime, fromNow, titleCase } from "../utils/format";
+import { useTranslation } from "react-i18next";
 
 /**
  * Filters live in the query string rather than in component state, so a
@@ -38,6 +40,7 @@ import { formatDateTime, fromNow, titleCase } from "../utils/format";
  * and can be linked to from the dashboard and from a camera's detail page.
  */
 export default function Alerts() {
+  const { t } = useTranslation();
   const [params, setParams] = useSearchParams();
 
   const status = params.get("status") || "";
@@ -78,11 +81,12 @@ export default function Alerts() {
   return (
     <Box>
       <PageHeader
-        title="Alerts"
-        subtitle="Every time a camera's count went outside its limits and was raised to operators, newest first."
+        title={t("alerts.alerts")}
+        subtitle={t("alerts.everyTimeACameraS")}
         actions={[
+          <ExportButton key="export" fetchBlob={() => alertApi.exportBlob({ status: status || undefined, threshold_type: thresholdType || undefined, camera_id: cameraId || undefined })} filenameStem="alerts" />,
           <Button key="refresh" onClick={refresh} startIcon={<RefreshIcon />}>
-            Refresh
+            {t("alerts.refresh")}
           </Button>,
         ]}
       />
@@ -91,13 +95,13 @@ export default function Alerts() {
         <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
           <TextField
             select
-            label="Status"
+            label={t("alerts.status")}
             size="small"
             value={status}
             onChange={(event) => setParam("status", event.target.value)}
             sx={{ minWidth: 180 }}
           >
-            <MenuItem value="">All statuses</MenuItem>
+            <MenuItem value="">{t("alerts.allStatuses")}</MenuItem>
             {ALERT_STATUSES.map((value) => (
               <MenuItem key={value} value={value}>
                 {titleCase(value)}
@@ -107,13 +111,13 @@ export default function Alerts() {
 
           <TextField
             select
-            label="Limit"
+            label={t("alerts.limit")}
             size="small"
             value={thresholdType}
             onChange={(event) => setParam("threshold_type", event.target.value)}
             sx={{ minWidth: 180 }}
           >
-            <MenuItem value="">Either limit</MenuItem>
+            <MenuItem value="">{t("alerts.eitherLimit")}</MenuItem>
             {Object.entries(THRESHOLD_LABEL).map(([value, label]) => (
               <MenuItem key={value} value={value}>
                 {label}
@@ -123,13 +127,13 @@ export default function Alerts() {
 
           <TextField
             select
-            label="Camera"
+            label={t("alerts.camera")}
             size="small"
             value={cameraId}
             onChange={(event) => setParam("camera_id", event.target.value)}
             sx={{ minWidth: 220 }}
           >
-            <MenuItem value="">All cameras</MenuItem>
+            <MenuItem value="">{t("alerts.allCameras")}</MenuItem>
             {(cameraList.data || []).map((camera) => (
               <MenuItem key={camera.camera_id} value={camera.camera_id}>
                 {camera.name}
@@ -139,7 +143,7 @@ export default function Alerts() {
 
           <Box sx={{ flex: 1 }} />
           {hasFilters ? (
-            <Button onClick={() => setParams(new URLSearchParams())}>Clear filters</Button>
+            <Button onClick={() => setParams(new URLSearchParams())}>{t("alerts.clearFilters")}</Button>
           ) : null}
         </Stack>
       </Card>
@@ -147,18 +151,18 @@ export default function Alerts() {
       <ErrorState error={error} onRetry={refresh} />
 
       {loading && !data ? (
-        <Loading label="Loading alerts…" />
+        <Loading label={t("alerts.loadingAlerts")} />
       ) : rows.length ? (
         <Card>
           <TableContainer>
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell align="right">People</TableCell>
-                  <TableCell>Limit</TableCell>
-                  <TableCell>Camera</TableCell>
-                  <TableCell>Triggered</TableCell>
-                  <TableCell>Status</TableCell>
+                  <TableCell align="right">{t("alerts.people")}</TableCell>
+                  <TableCell>{t("alerts.limit")}</TableCell>
+                  <TableCell>{t("alerts.camera")}</TableCell>
+                  <TableCell>{t("alerts.triggered")}</TableCell>
+                  <TableCell>{t("alerts.status")}</TableCell>
                   <TableCell align="right" />
                 </TableRow>
               </TableHead>
@@ -187,7 +191,7 @@ export default function Alerts() {
                           color="text.secondary"
                           variant="body2"
                         >
-                          {alert.camera_name || "Unnamed"}
+                          {alert.camera_name || t("alerts.unnamed")}
                         </Link>
                       ) : (
                         <Typography variant="body2" color="text.disabled">
@@ -207,7 +211,7 @@ export default function Alerts() {
                     </TableCell>
                     <TableCell align="right">
                       <Button size="small" component={RouterLink} to={`/alerts/${alert.alert_id}`}>
-                        Review
+                        {t("alerts.review")}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -229,21 +233,21 @@ export default function Alerts() {
       ) : (
         <Card>
           <EmptyState
-            title={hasFilters ? "Nothing matches these filters" : "No alerts yet"}
+            title={hasFilters ? t("alerts.nothingMatchesTheseFilters") : t("alerts.noAlertsYet")}
             description={
               hasFilters
-                ? "Try widening the status, limit or camera filter."
-                : "Alerts appear here when a camera's count goes above its maximum or below its minimum."
+                ? t("alerts.tryWideningTheStatusLimit")
+                : t("alerts.alertsAppearHereWhenA")
             }
             icon={<NotificationsIcon fontSize="inherit" />}
             action={
               hasFilters ? (
                 <Button variant="outlined" onClick={() => setParams(new URLSearchParams())}>
-                  Clear filters
+                  {t("alerts.clearFilters")}
                 </Button>
               ) : (
                 <Button variant="outlined" component={RouterLink} to="/cameras">
-                  Check cameras
+                  {t("alerts.checkCameras")}
                 </Button>
               )
             }

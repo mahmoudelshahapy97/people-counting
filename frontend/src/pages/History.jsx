@@ -33,6 +33,7 @@ import { useAsync } from "../hooks/useAsync";
 import { PAGE_SIZE_OPTIONS } from "../utils/constants";
 import { EMPTY_FILTERS, countParams, locationText } from "../utils/filters";
 import { formatDateTime } from "../utils/format";
+import { useTranslation } from "react-i18next";
 
 /**
  * Every stored sample, filterable and exportable: InsightEye's Frames Search,
@@ -40,6 +41,7 @@ import { formatDateTime } from "../utils/format";
  * picture (alerts keep theirs), so there is no card view.
  */
 export default function History() {
+  const { t } = useTranslation();
   const toast = useToast();
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [view, setView] = useState("table");
@@ -92,8 +94,8 @@ export default function History() {
   return (
     <Box>
       <PageHeader
-        title="Count history"
-        subtitle="Every stored sample: one per camera every few seconds, each checked against the camera's limits."
+        title={t("history.countHistory")}
+        subtitle={t("history.everyStoredSampleOnePer")}
         actions={[
           <ToggleButtonGroup
             key="view"
@@ -102,18 +104,18 @@ export default function History() {
             value={view}
             onChange={(_, next) => next && setView(next)}
           >
-            <ToggleButton value="table" aria-label="Table">
+            <ToggleButton value="table" aria-label={t("history.table")}>
               <TableRowsIcon fontSize="small" />
             </ToggleButton>
-            <ToggleButton value="chart" aria-label="Chart">
+            <ToggleButton value="chart" aria-label={t("history.chart")}>
               <ShowChartIcon fontSize="small" />
             </ToggleButton>
           </ToggleButtonGroup>,
           <Button key="export" startIcon={<DownloadIcon />} onClick={download} disabled={exporting}>
-            {exporting ? "Exporting…" : "Export CSV"}
+            {exporting ? t("history.exporting") : t("history.exportCsv")}
           </Button>,
           <Button key="refresh" onClick={active.refresh} startIcon={<RefreshIcon />}>
-            Refresh
+            {t("history.refresh")}
           </Button>,
         ]}
       />
@@ -125,32 +127,32 @@ export default function History() {
       {view === "chart" ? (
         <Card sx={{ p: 2 }}>
           {series.loading && !series.data ? (
-            <Loading label="Loading the chart…" />
+            <Loading label={t("history.loadingTheChart")} />
           ) : series.data?.data?.length ? (
             <>
-              <Typography variant="subtitle2">People over time</Typography>
+              <Typography variant="subtitle2">{t("history.peopleOverTime")}</Typography>
               <Typography variant="caption" color="text.secondary">
-                Average per {series.data.interval}, one line per camera.
+                {t("history.averagePerIntervalOneLine", { interval: series.data.interval })}
               </Typography>
               <TrendChart cameras={series.data.data} interval={series.data.interval} height={380} />
             </>
           ) : (
-            <EmptyState title="No samples in this range" description="Widen the dates or clear a filter." />
+            <EmptyState title={t("history.noSamplesInThisRange")} description={t("history.widenTheDatesOrClear")} />
           )}
         </Card>
       ) : history.loading && !history.data ? (
-        <Loading label="Loading samples…" />
+        <Loading label={t("history.loadingSamples")} />
       ) : rows.length ? (
         <Card>
           <TableContainer>
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Time</TableCell>
-                  <TableCell>Camera</TableCell>
-                  <TableCell>Location</TableCell>
-                  <TableCell align="right">People</TableCell>
-                  <TableCell>Limit</TableCell>
+                  <TableCell>{t("history.time")}</TableCell>
+                  <TableCell>{t("history.camera")}</TableCell>
+                  <TableCell>{t("history.location")}</TableCell>
+                  <TableCell align="right">{t("history.people")}</TableCell>
+                  <TableCell>{t("history.limit")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -204,8 +206,8 @@ export default function History() {
       ) : (
         <Card>
           <EmptyState
-            title="No samples in this range"
-            description="Samples are stored while a camera's worker runs. Widen the dates or clear a filter."
+            title={t("history.noSamplesInThisRange")}
+            description={t("history.samplesAreStoredWhileA")}
             icon={<TimelineIcon fontSize="inherit" />}
           />
         </Card>

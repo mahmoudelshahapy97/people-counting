@@ -18,6 +18,8 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import NetworkCheckIcon from "@mui/icons-material/NetworkCheck";
+import { ProbeDialog, useProbe } from "@insighteye/ui";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
@@ -40,6 +42,7 @@ import { usePolling } from "../../hooks/usePolling";
 import { POLL_INTERVAL_MS } from "../../utils/constants";
 import { countParams, limitsText, locationText, presetDates } from "../../utils/filters";
 import { formatDateTime, formatDuration, parseJsonField, redactUrl, titleCase } from "../../utils/format";
+import { useTranslation } from "react-i18next";
 
 function DetailRow({ label, children }) {
   return (
@@ -54,6 +57,7 @@ function DetailRow({ label, children }) {
 
 /** Operators tune the limits without the full camera form (an admin's job). */
 function LimitsDialog({ open, camera, onClose, onSaved }) {
+  const { t } = useTranslation();
   const toast = useToast();
   const [max, setMax] = useState("");
   const [min, setMin] = useState("");
@@ -72,11 +76,11 @@ function LimitsDialog({ open, camera, onClose, onSaved }) {
     const greater = max === "" ? null : Number(max);
     const less = min === "" ? null : Number(min);
     if ([greater, less].some((v) => v !== null && (!Number.isInteger(v) || v < 0))) {
-      setError("Limits are whole numbers, 0 or more.");
+      setError(t("cameraDetail.limitsAreWholeNumbers0"));
       return;
     }
     if (greater !== null && less !== null && less >= greater) {
-      setError("The minimum must be lower than the maximum.");
+      setError(t("cameraDetail.theMinimumMustBeLower"));
       return;
     }
     setBusy(true);
@@ -86,7 +90,7 @@ function LimitsDialog({ open, camera, onClose, onSaved }) {
         count_threshold_less: less,
         alert_enabled: enabled,
       });
-      toast.success("Occupancy limits saved.");
+      toast.success(t("cameraDetail.occupancyLimitsSaved"));
       onSaved();
     } catch (err) {
       setError(errorMessage(err));
@@ -97,29 +101,29 @@ function LimitsDialog({ open, camera, onClose, onSaved }) {
 
   return (
     <Dialog open={open} onClose={busy ? undefined : onClose} maxWidth="xs" fullWidth TransitionProps={{ onEnter: reset }}>
-      <DialogTitle>Occupancy limits</DialogTitle>
+      <DialogTitle>{t("cameraDetail.occupancyLimits")}</DialogTitle>
       <DialogContent>
         <Stack spacing={2.5} sx={{ pt: 1 }}>
           <TextField
-            label="Maximum people"
+            label={t("cameraDetail.maximumPeople")}
             type="number"
             value={max}
             onChange={(event) => setMax(event.target.value)}
-            helperText="Blank: no maximum"
+            helperText={t("cameraDetail.blankNoMaximum")}
             inputProps={{ min: 0, step: 1 }}
             autoFocus
           />
           <TextField
-            label="Minimum people"
+            label={t("cameraDetail.minimumPeople")}
             type="number"
             value={min}
             onChange={(event) => setMin(event.target.value)}
-            helperText="Blank: no minimum"
+            helperText={t("cameraDetail.blankNoMinimum")}
             inputProps={{ min: 0, step: 1 }}
           />
           <FormControlLabel
             control={<Switch checked={enabled} onChange={(event) => setEnabled(event.target.checked)} />}
-            label="Raise alerts"
+            label={t("cameraDetail.raiseAlerts")}
           />
           {error ? (
             <Typography variant="body2" color="error.main">
@@ -130,10 +134,10 @@ function LimitsDialog({ open, camera, onClose, onSaved }) {
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose} disabled={busy} color="inherit">
-          Cancel
+          {t("cameraDetail.cancel")}
         </Button>
         <Button variant="contained" onClick={save} disabled={busy}>
-          {busy ? "Saving…" : "Save limits"}
+          {busy ? t("cameraDetail.saving") : t("cameraDetail.saveLimits")}
         </Button>
       </DialogActions>
     </Dialog>
@@ -141,6 +145,7 @@ function LimitsDialog({ open, camera, onClose, onSaved }) {
 }
 
 export default function CameraDetail() {
+  const { t } = useTranslation();
   const { cameraId } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
@@ -149,6 +154,7 @@ export default function CameraDetail() {
   const canManage = hasRole("admin");
 
   const camera = useAsync(({ signal }) => cameraApi.get(cameraId, { signal }), [cameraId]);
+  const probe = useProbe(cameraApi, errorMessage);
   const status = usePolling(({ signal }) => cameraApi.status(cameraId, { signal }), {
     intervalMs: POLL_INTERVAL_MS,
     deps: [cameraId],
@@ -210,7 +216,7 @@ export default function CameraDetail() {
     setBusy(true);
     try {
       await cameraApi.remove(cameraId);
-      toast.success(`Camera "${camera.data?.name}" deleted.`);
+      toast.success(t("cameraDetail.cameraV0Deleted", { v0: camera.data?.name }));
       navigate("/cameras");
     } catch (err) {
       toast.error(errorMessage(err));
@@ -218,20 +224,25 @@ export default function CameraDetail() {
     }
   };
 
-  if (camera.loading && !camera.data) return <Loading label="Loading camera…" />;
+  if (camera.loading && !camera.data) return <Loading label={t("cameraDetail.loadingCamera")} />;
   if (camera.error) return <ErrorState error={camera.error} onRetry={camera.refresh} />;
   if (!camera.data) return null;
 
   return (
     <Box>
       <Button component={RouterLink} to="/cameras" startIcon={<ArrowBackIcon />} sx={{ mb: 2 }}>
-        All cameras
+        {t("cameraDetail.allCameras")}
       </Button>
 
       <PageHeader
         title={camera.data.name}
-        subtitle={locationText(camera.data) || "No location set"}
+        subtitle={locationText(camera.data) || t("cameraDetail.noLocationSet")}
         actions={[
+          canOperate && (
+            <Button key="probe" startIcon={<NetworkCheckIcon />} onClick={() => probe.probe(cameraId)}>
+              {t("actions.testConnection")}
+            </Button>
+          ),
           canOperate &&
             (running ? (
               <Button
@@ -240,9 +251,9 @@ export default function CameraDetail() {
                 color="warning"
                 startIcon={<StopIcon />}
                 disabled={busy}
-                onClick={() => runAction(() => cameraApi.stop(cameraId), "Worker stopped.")}
+                onClick={() => runAction(() => cameraApi.stop(cameraId), t("cameraDetail.workerStopped"))}
               >
-                Stop worker
+                {t("cameraDetail.stopWorker")}
               </Button>
             ) : (
               <Button
@@ -250,17 +261,17 @@ export default function CameraDetail() {
                 variant="contained"
                 startIcon={<PlayArrowIcon />}
                 disabled={busy}
-                onClick={() => runAction(() => cameraApi.start(cameraId), "Worker started.")}
+                onClick={() => runAction(() => cameraApi.start(cameraId), t("cameraDetail.workerStarted"))}
               >
-                Start worker
+                {t("cameraDetail.startWorker")}
               </Button>
             )),
           <Button key="alerts" component={RouterLink} to={`/alerts?camera_id=${cameraId}`}>
-            View alerts
+            {t("cameraDetail.viewAlerts")}
           </Button>,
           canOperate && (
             <Button key="limits" startIcon={<TuneIcon />} onClick={() => setEditLimits(true)}>
-              Limits
+              {t("cameraDetail.limits")}
             </Button>
           ),
           canManage && (
@@ -270,7 +281,7 @@ export default function CameraDetail() {
               to={`/cameras/${cameraId}/edit`}
               startIcon={<EditIcon />}
             >
-              Edit
+              {t("cameraDetail.edit")}
             </Button>
           ),
           canManage && (
@@ -281,7 +292,7 @@ export default function CameraDetail() {
               disabled={busy}
               onClick={() => setConfirmDelete(true)}
             >
-              Delete
+              {t("cameraDetail.delete")}
             </Button>
           ),
         ]}
@@ -298,16 +309,16 @@ export default function CameraDetail() {
             >
               <Box>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  {live ? "Live view" : "Snapshot"}
+                  {live ? t("cameraDetail.liveView") : t("cameraDetail.snapshot")}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
                   {live
-                    ? "Every counted person boxed, the count on top; the frame turns red outside the limits."
-                    : "The worker's latest frame, or a one-shot grab when it is stopped."}
+                    ? t("cameraDetail.everyCountedPersonBoxedThe")
+                    : t("cameraDetail.theWorkerSLatestFrame")}
                 </Typography>
               </Box>
               {live ? (
-                <Chip size="small" color="error" label="LIVE" />
+                <Chip size="small" color="error" label={t("cameraDetail.live")} />
               ) : (
                 <Button
                   size="small"
@@ -317,7 +328,7 @@ export default function CameraDetail() {
                     if (running) setStreamFailed(false);
                   }}
                 >
-                  Refresh frame
+                  {t("cameraDetail.refreshFrame")}
                 </Button>
               )}
             </Stack>
@@ -327,7 +338,7 @@ export default function CameraDetail() {
                 component="img"
                 key={streamKey}
                 src={cameraApi.streamUrl(cameraId, streamKey)}
-                alt={`Live view from ${camera.data.name}`}
+                alt={t("cameraDetail.liveViewFromName", { name: camera.data.name })}
                 onError={() => setStreamFailed(true)}
                 sx={{
                   height: 380,
@@ -341,10 +352,10 @@ export default function CameraDetail() {
               <ItemImage
                 key={snapshotKey}
                 src={cameraApi.snapshotUrl(cameraId, snapshotKey)}
-                alt={`Snapshot from ${camera.data.name}`}
+                alt={t("cameraDetail.snapshotFromName", { name: camera.data.name })}
                 height={380}
                 fit="contain"
-                fallbackLabel="No frame — the RTSP source is not answering"
+                fallbackLabel={t("cameraDetail.noFrameTheRtspSource")}
               />
             )}
           </Card>
@@ -354,7 +365,7 @@ export default function CameraDetail() {
           <Card sx={{ mb: 2 }}>
             <CardContent>
               <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-                Occupancy
+                {t("cameraDetail.occupancy")}
               </Typography>
               <Divider />
               <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mt: 2 }}>
@@ -367,7 +378,7 @@ export default function CameraDetail() {
                   {running && worker?.connected && worker.current_count != null ? worker.current_count : "—"}
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                  people now
+                  {t("cameraDetail.peopleNow")}
                 </Typography>
                 <Box sx={{ flexGrow: 1 }} />
                 <ThresholdChip
@@ -379,16 +390,16 @@ export default function CameraDetail() {
                   }
                 />
               </Stack>
-              <DetailRow label="Limits">
+              <DetailRow label={t("cameraDetail.limits")}>
                 <Typography variant="body2">
                   {limitsText(camera.data)}
-                  {camera.data.alert_enabled ? "" : " · alerts off"}
+                  {camera.data.alert_enabled ? "" : t("cameraDetail.alertsOff")}
                 </Typography>
               </DetailRow>
               {running && worker?.cooldown_remaining_s > 0 ? (
-                <DetailRow label="Next alert">
+                <DetailRow label={t("cameraDetail.nextAlert")}>
                   <Typography variant="body2" color="text.secondary">
-                    Held back for {formatDuration(worker.cooldown_remaining_s)} (cooldown)
+                    {t("cameraDetail.heldBackForV0Cooldown", { v0: formatDuration(worker.cooldown_remaining_s) })}
                   </Typography>
                 </DetailRow>
               ) : null}
@@ -398,23 +409,23 @@ export default function CameraDetail() {
           <Card>
             <CardContent>
               <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-                Configuration
+                {t("cameraDetail.configuration")}
               </Typography>
               <Divider />
-              <DetailRow label="State">
+              <DetailRow label={t("cameraDetail.state")}>
                 <EnabledChip enabled={camera.data.enabled} />
               </DetailRow>
-              <DetailRow label="RTSP URL">
+              <DetailRow label={t("cameraDetail.rtspUrl")}>
                 <Typography variant="body2" sx={{ wordBreak: "break-all" }}>
                   {redactUrl(camera.data.rtsp_url)}
                 </Typography>
               </DetailRow>
-              <DetailRow label="Counting region">
+              <DetailRow label={t("cameraDetail.countingRegion")}>
                 <Typography variant="body2" color="text.secondary">
-                  {roi?.length ? `${roi.length}-point polygon (people standing inside it)` : "Whole frame"}
+                  {roi?.length ? t("cameraDetail.lengthPointPolygonPeopleStanding", { length: roi.length }) : t("cameraDetail.wholeFrame")}
                 </Typography>
               </DetailRow>
-              <DetailRow label="Overrides">
+              <DetailRow label={t("cameraDetail.overrides")}>
                 {Object.keys(settings).length ? (
                   <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
                     {Object.entries(settings).map(([key, value]) => (
@@ -423,11 +434,11 @@ export default function CameraDetail() {
                   </Stack>
                 ) : (
                   <Typography variant="body2" color="text.secondary">
-                    Inheriting every global default
+                    {t("cameraDetail.inheritingEveryGlobalDefault")}
                   </Typography>
                 )}
               </DetailRow>
-              <DetailRow label="Registered">
+              <DetailRow label={t("cameraDetail.registered")}>
                 <Typography variant="body2" color="text.secondary">
                   {formatDateTime(camera.data.created_at)}
                 </Typography>
@@ -438,12 +449,12 @@ export default function CameraDetail() {
           <Card sx={{ mt: 2 }}>
             <CardContent>
               <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-                Worker
+                {t("cameraDetail.worker")}
               </Typography>
               <Divider />
               {running ? (
                 <>
-                  <DetailRow label="Connection">
+                  <DetailRow label={t("cameraDetail.connection")}>
                     <Chip
                       size="small"
                       color={
@@ -455,49 +466,49 @@ export default function CameraDetail() {
                       }
                       label={
                         worker.state === "error"
-                          ? "Error — supervisor will restart it"
+                          ? t("cameraDetail.errorSupervisorWillRestartIt")
                           : worker.connected
-                            ? "Streaming"
+                            ? t("cameraDetail.streaming")
                             : titleCase(worker.state || "reconnecting")
                       }
                     />
                   </DetailRow>
-                  <DetailRow label="Last frame">
+                  <DetailRow label={t("cameraDetail.lastFrame")}>
                     <Typography variant="body2" color="text.secondary">
                       {worker.last_frame_at
-                        ? `${formatDuration(worker.seconds_since_frame)} ago · ${worker.fps ?? 0} fps`
-                        : "None yet"}
+                        ? t("cameraDetail.v0AgoV1Fps", { v0: formatDuration(worker.seconds_since_frame), v1: worker.fps ?? 0 })
+                        : t("cameraDetail.noneYet")}
                     </Typography>
                   </DetailRow>
-                  <DetailRow label="Reconnects">
+                  <DetailRow label={t("cameraDetail.reconnects")}>
                     <Typography variant="body2">
                       {worker.reconnects ?? 0}
                       {worker.supervisor_restarts
-                        ? ` · ${worker.supervisor_restarts} supervisor restart(s)`
+                        ? t("cameraDetail.supervisorRestartsSupervisorRestartS", { supervisor_restarts: worker.supervisor_restarts })
                         : ""}
                     </Typography>
                   </DetailRow>
-                  <DetailRow label="Started">
+                  <DetailRow label={t("cameraDetail.started")}>
                     <Typography variant="body2" color="text.secondary">
                       {formatDateTime(worker.started_at)}
                     </Typography>
                   </DetailRow>
-                  <DetailRow label="Frames processed">
+                  <DetailRow label={t("cameraDetail.framesProcessed")}>
                     <Typography variant="body2">{worker.frames_processed ?? 0}</Typography>
                   </DetailRow>
-                  <DetailRow label="Samples stored">
+                  <DetailRow label={t("cameraDetail.samplesStored")}>
                     <Typography variant="body2">
                       {worker.samples_stored ?? 0}
-                      {worker.last_sample_at ? ` · last ${formatDateTime(worker.last_sample_at)}` : ""}
+                      {worker.last_sample_at ? t("cameraDetail.lastV0", { v0: formatDateTime(worker.last_sample_at) }) : ""}
                     </Typography>
                   </DetailRow>
-                  <DetailRow label="Violations">
+                  <DetailRow label={t("cameraDetail.violations")}>
                     <Typography variant="body2">
-                      {worker.violations ?? 0} · {worker.alerts_raised ?? 0} alert(s) raised
+                      {t("cameraDetail.v0V1AlertSRaised", { v0: worker.violations ?? 0, v1: worker.alerts_raised ?? 0 })}
                     </Typography>
                   </DetailRow>
                   {worker.last_error ? (
-                    <DetailRow label="Last error">
+                    <DetailRow label={t("cameraDetail.lastError")}>
                       <Typography variant="body2" color="error.main">
                         {worker.last_error}
                       </Typography>
@@ -506,7 +517,7 @@ export default function CameraDetail() {
                 </>
               ) : (
                 <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-                  Not running. Nothing from this camera is being analysed.
+                  {t("cameraDetail.notRunningNothingFromThis")}
                 </Typography>
               )}
             </CardContent>
@@ -517,10 +528,10 @@ export default function CameraDetail() {
           <Card>
             <Box sx={{ px: 2.5, py: 2 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Today
+                {t("cameraDetail.today")}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Average count per 5 minutes since midnight; dashed lines are the limits.
+                {t("cameraDetail.averageCountPer5Minutes")}
               </Typography>
             </Box>
             <Divider />
@@ -535,11 +546,11 @@ export default function CameraDetail() {
               </Box>
             ) : (
               <EmptyState
-                title="No samples today"
+                title={t("cameraDetail.noSamplesToday")}
                 description={
                   running
-                    ? "The first sample is stored a few seconds after the worker connects."
-                    : "Start the worker to begin counting."
+                    ? t("cameraDetail.theFirstSampleIsStored")
+                    : t("cameraDetail.startTheWorkerToBegin")
                 }
               />
             )}
@@ -558,11 +569,12 @@ export default function CameraDetail() {
         }}
       />
 
+      <ProbeDialog {...probe.dialogProps} />
       <ConfirmDialog
         open={confirmDelete}
-        title={`Delete “${camera.data.name}”?`}
-        description="This also deletes its count history, violations and every alert it raised."
-        confirmLabel="Delete"
+        title={t("cameraDetail.deleteName", { name: camera.data.name })}
+        description={t("cameraDetail.thisAlsoDeletesItsCount")}
+        confirmLabel={t("cameraDetail.delete")}
         confirmColor="error"
         busy={busy}
         onConfirm={remove}

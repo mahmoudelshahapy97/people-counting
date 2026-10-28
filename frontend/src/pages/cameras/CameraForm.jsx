@@ -22,6 +22,8 @@ import { useToast } from "../../components/Toast";
 import { ErrorState, Loading } from "../../components/DataStates";
 import PageHeader from "../../components/PageHeader";
 import { parseJsonField } from "../../utils/format";
+import { useTranslation } from "react-i18next";
+import i18n from "i18next";
 
 const EMPTY = {
   name: "",
@@ -41,10 +43,10 @@ const EMPTY = {
 };
 
 const LOCATION_FIELDS = [
-  { key: "building", label: "Building", placeholder: "HQ", max: 100 },
-  { key: "floor_level", label: "Floor", placeholder: "G, 1, 2…", max: 40 },
-  { key: "zone", label: "Zone", placeholder: "Entrance", max: 120 },
-  { key: "area", label: "Area", placeholder: "Lobby", max: 120 },
+  { key: "building", get label() { return i18n.t("cameraForm.building"); }, placeholder: "HQ", max: 100 },
+  { key: "floor_level", get label() { return i18n.t("cameraForm.floor"); }, placeholder: "G, 1, 2…", max: 40 },
+  { key: "zone", get label() { return i18n.t("cameraForm.zone"); }, placeholder: "Entrance", max: 120 },
+  { key: "area", get label() { return i18n.t("cameraForm.area"); }, placeholder: "Lobby", max: 120 },
 ];
 
 /**
@@ -56,26 +58,26 @@ const LOCATION_FIELDS = [
 const OVERRIDE_FIELDS = [
   {
     key: "confidence",
-    label: "Detector confidence",
+    get label() { return i18n.t("cameraForm.detectorConfidence"); },
     unit: "0–1",
-    help: "Boxes below this score are not counted. Default PEOPLE_CONFIDENCE.",
+    get help() { return i18n.t("cameraForm.boxesBelowThisScoreAre"); },
     min: 0.05,
     max: 0.95,
     step: 0.05,
   },
   {
     key: "sample_interval_s",
-    label: "Store a sample every",
+    get label() { return i18n.t("cameraForm.storeASampleEvery"); },
     unit: "s",
-    help: "How often the count is written to history and checked against the limits.",
+    get help() { return i18n.t("cameraForm.howOftenTheCountIs"); },
     min: 1,
     max: 3600,
   },
   {
     key: "alert_cooldown_s",
-    label: "Alert cooldown",
+    get label() { return i18n.t("cameraForm.alertCooldown"); },
     unit: "s",
-    help: "At most one alert per this window, however long the count stays out of range.",
+    get help() { return i18n.t("cameraForm.atMostOneAlertPer"); },
     min: 0,
     max: 86400,
   },
@@ -85,40 +87,41 @@ const blank = (raw) => raw === "" || raw === null || raw === undefined;
 
 function validate(values) {
   const errors = {};
-  if (!values.name.trim()) errors.name = "Required";
-  else if (values.name.length > 120) errors.name = "At most 120 characters";
+  if (!values.name.trim()) errors.name = i18n.t("cameraForm.required");
+  else if (values.name.length > 120) errors.name = i18n.t("cameraForm.atMost120Characters");
 
-  if (!values.rtsp_url.trim()) errors.rtsp_url = "Required";
-  if (values.location.length > 200) errors.location = "At most 200 characters";
+  if (!values.rtsp_url.trim()) errors.rtsp_url = i18n.t("cameraForm.required");
+  if (values.location.length > 200) errors.location = i18n.t("cameraForm.atMost200Characters");
   LOCATION_FIELDS.forEach(({ key, max }) => {
-    if (values[key].length > max) errors[key] = `At most ${max} characters`;
+    if (values[key].length > max) errors[key] = i18n.t("cameraForm.atMostMaxCharacters", { max });
   });
 
   for (const key of ["count_threshold_greater", "count_threshold_less"]) {
     const raw = values[key];
     if (blank(raw)) continue;
     const value = Number(raw);
-    if (!Number.isInteger(value) || value < 0) errors[key] = "A whole number, 0 or more";
+    if (!Number.isInteger(value) || value < 0) errors[key] = i18n.t("cameraForm.aWholeNumber0Or");
   }
   // The API and the database both refuse this; say so before the round trip.
   const max = blank(values.count_threshold_greater) ? null : Number(values.count_threshold_greater);
   const min = blank(values.count_threshold_less) ? null : Number(values.count_threshold_less);
   if (max !== null && min !== null && min >= max) {
-    errors.count_threshold_less = "Must be lower than the maximum";
+    errors.count_threshold_less = i18n.t("cameraForm.mustBeLowerThanThe");
   }
 
   OVERRIDE_FIELDS.forEach(({ key, min: lo, max: hi }) => {
     const raw = values[key];
     if (blank(raw)) return;
     const value = Number(raw);
-    if (Number.isNaN(value)) errors[key] = "Must be a number";
-    else if (value < lo || value > hi) errors[key] = `Between ${lo} and ${hi}`;
+    if (Number.isNaN(value)) errors[key] = i18n.t("cameraForm.mustBeANumber");
+    else if (value < lo || value > hi) errors[key] = i18n.t("cameraForm.betweenLoAndHi", { lo, hi });
   });
 
   return errors;
 }
 
 export default function CameraForm() {
+  const { t } = useTranslation();
   const { cameraId } = useParams();
   const isEdit = Boolean(cameraId);
   const navigate = useNavigate();
@@ -205,11 +208,11 @@ export default function CameraForm() {
     try {
       if (isEdit) {
         await camerasApi.update(cameraId, payload);
-        toast.success(`Camera "${payload.name}" updated.`);
+        toast.success(t("cameraForm.cameraNameUpdated", { name: payload.name }));
         navigate(`/cameras/${cameraId}`);
       } else {
         const created = await camerasApi.create(payload);
-        toast.success(`Camera "${created.name}" registered.`);
+        toast.success(t("cameraForm.cameraNameRegistered", { name: created.name }));
         navigate(`/cameras/${created.camera_id}`);
       }
     } catch (err) {
@@ -219,7 +222,7 @@ export default function CameraForm() {
     }
   };
 
-  if (isEdit && loading && !camera) return <Loading label="Loading camera…" />;
+  if (isEdit && loading && !camera) return <Loading label={t("cameraForm.loadingCamera")} />;
   if (isEdit && loadError) return <ErrorState error={loadError} onRetry={refresh} />;
 
   return (
@@ -229,15 +232,15 @@ export default function CameraForm() {
         onClick={() => navigate(isEdit ? `/cameras/${cameraId}` : "/cameras")}
         sx={{ mb: 2 }}
       >
-        Back
+        {t("cameraForm.back")}
       </Button>
 
       <PageHeader
-        title={isEdit ? `Edit ${camera?.name || "camera"}` : "Register a camera"}
+        title={isEdit ? t("cameraForm.editV0", { v0: camera?.name || "camera" }) : t("cameraForm.registerACamera")}
         subtitle={
           isEdit
-            ? "A running worker is restarted when you save, so changes take effect at once."
-            : "An enabled camera starts counting as soon as it is saved."
+            ? t("cameraForm.aRunningWorkerIsRestarted")
+            : t("cameraForm.anEnabledCameraStartsCounting")
         }
       />
 
@@ -247,35 +250,35 @@ export default function CameraForm() {
             <Card>
               <CardContent>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
-                  Source
+                  {t("cameraForm.source")}
                 </Typography>
                 <Stack spacing={2.5}>
                   <TextField
-                    label="Name"
+                    label={t("cameraForm.name")}
                     value={values.name}
                     onChange={setField("name")}
                     error={Boolean(errors.name)}
-                    helperText={errors.name || "Must be unique within this workspace."}
+                    helperText={errors.name || t("cameraForm.mustBeUniqueWithinThis")}
                     required
                     fullWidth
                     autoFocus
                   />
                   <TextField
-                    label="RTSP URL"
+                    label={t("cameraForm.rtspUrl")}
                     value={values.rtsp_url}
                     onChange={setField("rtsp_url")}
                     error={Boolean(errors.rtsp_url)}
                     helperText={
                       errors.rtsp_url ||
-                      "rtsp://user:pass@host:554/stream, or a file path inside the API container for testing."
+                      t("cameraForm.rtspUserPassHost554")
                     }
                     required
                     fullWidth
-                    placeholder="rtsp://mediamtx:8554/people"
+                    placeholder={t("cameraForm.rtspMediamtx8554People")}
                   />
                   <FormControlLabel
                     control={<Switch checked={values.enabled} onChange={setField("enabled")} />}
-                    label="Enabled"
+                    label={t("cameraForm.enabled")}
                   />
                 </Stack>
               </CardContent>
@@ -284,21 +287,21 @@ export default function CameraForm() {
             <Card sx={{ mt: 2 }}>
               <CardContent>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  Placement
+                  {t("cameraForm.placement")}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
-                  The analytics group by floor and filter by any of these.
+                  {t("cameraForm.theAnalyticsGroupByFloor")}
                 </Typography>
                 <Grid container spacing={2}>
                   <Grid size={12}>
                     <TextField
-                      label="Location"
+                      label={t("cameraForm.location")}
                       value={values.location}
                       onChange={setField("location")}
                       error={Boolean(errors.location)}
-                      helperText={errors.location || "Where an operator would physically go."}
+                      helperText={errors.location || t("cameraForm.whereAnOperatorWouldPhysically")}
                       fullWidth
-                      placeholder="HQ lobby doors"
+                      placeholder={t("cameraForm.hqLobbyDoors")}
                     />
                   </Grid>
                   {LOCATION_FIELDS.map(({ key, label, placeholder }) => (
@@ -323,30 +326,29 @@ export default function CameraForm() {
             <Card>
               <CardContent>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  Occupancy limits
+                  {t("cameraForm.occupancyLimits")}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
-                  A count above the maximum or below the minimum is a violation. Leave a side blank
-                  to leave it open.
+                  {t("cameraForm.aCountAboveTheMaximum")}
                 </Typography>
                 <Divider sx={{ mb: 2.5 }} />
                 <Stack spacing={2.5}>
                   <TextField
-                    label="Maximum people"
+                    label={t("cameraForm.maximumPeople")}
                     value={values.count_threshold_greater}
                     onChange={setField("count_threshold_greater")}
                     error={Boolean(errors.count_threshold_greater)}
-                    helperText={errors.count_threshold_greater || "Alert when more people than this are counted."}
+                    helperText={errors.count_threshold_greater || t("cameraForm.alertWhenMorePeopleThan")}
                     type="number"
                     inputProps={{ min: 0, step: 1 }}
                     fullWidth
                   />
                   <TextField
-                    label="Minimum people"
+                    label={t("cameraForm.minimumPeople")}
                     value={values.count_threshold_less}
                     onChange={setField("count_threshold_less")}
                     error={Boolean(errors.count_threshold_less)}
-                    helperText={errors.count_threshold_less || "Alert when fewer people than this are counted, e.g. a desk that must be staffed."}
+                    helperText={errors.count_threshold_less || t("cameraForm.alertWhenFewerPeopleThan")}
                     type="number"
                     inputProps={{ min: 0, step: 1 }}
                     fullWidth
@@ -355,10 +357,10 @@ export default function CameraForm() {
                     control={
                       <Switch checked={values.alert_enabled} onChange={setField("alert_enabled")} />
                     }
-                    label="Raise alerts"
+                    label={t("cameraForm.raiseAlerts")}
                   />
                   <Typography variant="caption" color="text.secondary">
-                    Off, violations are still recorded for the analytics; nobody is alerted.
+                    {t("cameraForm.offViolationsAreStillRecorded")}
                   </Typography>
                 </Stack>
               </CardContent>
@@ -367,11 +369,10 @@ export default function CameraForm() {
             <Card sx={{ mt: 2 }}>
               <CardContent>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  Counting overrides
+                  {t("cameraForm.countingOverrides")}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
-                  Leave a field blank to inherit the global value from the API's environment. A
-                  blank is not zero.
+                  {t("cameraForm.leaveAFieldBlankTo")}
                 </Typography>
                 <Divider sx={{ mb: 2.5 }} />
                 <Stack spacing={2.5}>
@@ -406,14 +407,14 @@ export default function CameraForm() {
             ) : null}
             <Stack direction="row" spacing={1}>
               <Button type="submit" variant="contained" disabled={saving}>
-                {saving ? "Saving…" : isEdit ? "Save changes" : "Register camera"}
+                {saving ? t("cameraForm.saving") : isEdit ? t("cameraForm.saveChanges") : t("cameraForm.registerCamera")}
               </Button>
               <Button
                 color="inherit"
                 disabled={saving}
                 onClick={() => navigate(isEdit ? `/cameras/${cameraId}` : "/cameras")}
               >
-                Cancel
+                {t("cameraForm.cancel")}
               </Button>
             </Stack>
           </Grid>

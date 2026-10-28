@@ -4,6 +4,7 @@ import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { alpha, useTheme } from "@mui/material/styles";
+import { useTranslation } from "react-i18next";
 
 // Postgres EXTRACT(DOW): 0 is Sunday.
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -21,6 +22,7 @@ const pad = (hour) => String(hour).padStart(2, "0");
  * `cells` is sparse - [{weekday, hour, [valueKey]}] for the non-empty ones only.
  */
 export function HourHeatmap({ cells = [], valueKey = "avg_person_count", unit = "person", digits = 1 }) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const base = theme.palette.primary.main;
 
@@ -78,7 +80,7 @@ export function HourHeatmap({ cells = [], valueKey = "avg_person_count", unit = 
               return (
                 <Tooltip
                   key={`${day}-${hour}`}
-                  title={`${day} ${pad(hour)}:00 – ${pad(hour)}:59 · ${show(value)} ${plural(value)} on average`}
+                  title={t("hourHeatmap.dayV100V259", { day, v1: pad(hour), v2: pad(hour), v3: show(value), v4: plural(value) })}
                   disableInteractive
                 >
                   <Box
@@ -114,7 +116,7 @@ export function HourHeatmap({ cells = [], valueKey = "avg_person_count", unit = 
           }}
         />
         <Typography variant="caption" color="text.secondary">
-          {show(max)} average
+          {t("hourHeatmap.v0Average", { v0: show(max) })}
         </Typography>
       </Stack>
     </Box>
